@@ -310,10 +310,12 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
 
     def __init__(self, address, host_key=None, authurl=None, max_children=20, keystone=None,
             no_scp=False, split_size=0, hide_part_dir=False, auth_timeout=None,
-            negotiation_timeout=0, keepalive=0, insecure=False, secopts=None, server_ident=None, proxy_protocol=None):
+            negotiation_timeout=0, keepalive=0, insecure=False, secopts=None,
+            server_ident=None, proxy_protocol=None, storage_policy=False):
         self.log = paramiko.util.get_logger("paramiko")
         self.log.debug("%s: start server" % self.__class__.__name__)
-        self.fs = ObjectStorageFS(None, None, authurl=authurl, keystone=keystone, hide_part_dir=hide_part_dir, insecure=insecure) # unauthorized
+        self.fs = ObjectStorageFS(None, None, authurl=authurl, keystone=keystone, hide_part_dir=hide_part_dir,
+                                  insecure=insecure, storage_policy=storage_policy) # unauthorized
         self.host_key = host_key
         self.max_children = max_children
         self.no_scp = no_scp
@@ -325,6 +327,7 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
         ObjectStorageSFTPRequestHandler.proxy_protocol = proxy_protocol
         ForkingTCPServer.__init__(self, address, ObjectStorageSFTPRequestHandler)
         ObjectStorageFD.split_size = split_size
+        ObjectStorageFD.storage_policy = storage_policy
 
     def check_channel_request(self, kind, chanid):
         if kind == 'session':

@@ -101,5 +101,9 @@
 # Endpoint type to be used with Keystone auth.
 # keystone-endpoint-type = publicURL
 
+# Swift storage policy to be used (optional)
+# Access to other containers will be denied
+# storage-policy = 'Policy-0'
+
 # EOF
 

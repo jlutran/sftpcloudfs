@@ -92,6 +92,9 @@ that supports following options:
     --keystone-endpoint-type=ENDPOINT_TYPE
                           Endpoint type to be used in Keystone auth,
                           default: publicURL
+    --storage-policy=STORAGE_POLICY
+                          Swift storage policy to be used (optional)
+                          Access to other containers will be denied
     --config=CONFIG       Use an alternative configuration file
 
 The default location for the configuration file is /etc/sftpcloudfs.conf.
