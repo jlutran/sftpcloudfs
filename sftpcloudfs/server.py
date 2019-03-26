@@ -230,6 +230,7 @@ class ObjectStorageSFTPRequestHandler(StreamRequestHandler):
     keepalive = 0
     secopts = {}
     server_ident = None
+    proxy_protocol = False
 
     def handle(self):
         Random.atfork()
@@ -259,6 +260,10 @@ class ObjectStorageSFTPRequestHandler(StreamRequestHandler):
             local_version.append(self.server_ident)
             t.local_version = '-'.join(local_version)
 
+        if self.proxy_protocol:
+            t.proxy_protocol = True
+            self.log.debug('Proxy protocol parser enabled')
+
         # asynchronous negotiation with optional time limit; paramiko has a banner timeout already (15 secs)
         start = time()
         event = threading.Event()
@@ -271,6 +276,7 @@ class ObjectStorageSFTPRequestHandler(StreamRequestHandler):
                         self.log.warning("%r, disconnecting: %s" % (self.client_address, ex))
                         return
                     self.log.debug("negotiation was OK")
+                    self._update_proxy_info(t)
                     break
                 if self.negotiation_timeout > 0 and time()-start > self.negotiation_timeout:
                     self.log.warning("%r, disconnecting: Negotiation timed out." % (self.client_address,))
@@ -284,11 +290,17 @@ class ObjectStorageSFTPRequestHandler(StreamRequestHandler):
             while t.isAlive():
                 t.join(timeout=10)
         finally:
+            self._update_proxy_info(t)
             self.log.info("%r, cleaning up connection: bye." % (self.client_address,))
             if self.server.fs.conn:
                 self.server.fs.conn.close()
             t.close()
         return
+
+    def _update_proxy_info(self, t):
+        if t.proxy_protocol and t.proxy_info is not None:
+            self.client_address = (t.proxy_info.source_address, t.proxy_info.source_port)
+            self.server.client_address = (t.proxy_info.source_address, t.proxy_info.source_port)
 
 class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
     """
@@ -298,7 +310,7 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
 
     def __init__(self, address, host_key=None, authurl=None, max_children=20, keystone=None,
             no_scp=False, split_size=0, hide_part_dir=False, auth_timeout=None,
-            negotiation_timeout=0, keepalive=0, insecure=False, secopts=None, server_ident=None):
+            negotiation_timeout=0, keepalive=0, insecure=False, secopts=None, server_ident=None, proxy_protocol=None):
         self.log = paramiko.util.get_logger("paramiko")
         self.log.debug("%s: start server" % self.__class__.__name__)
         self.fs = ObjectStorageFS(None, None, authurl=authurl, keystone=keystone, hide_part_dir=hide_part_dir, insecure=insecure) # unauthorized
@@ -310,6 +322,7 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
         ObjectStorageSFTPRequestHandler.keepalive = keepalive
         ObjectStorageSFTPRequestHandler.secopts = secopts
         ObjectStorageSFTPRequestHandler.server_ident = server_ident
+        ObjectStorageSFTPRequestHandler.proxy_protocol = proxy_protocol
         ForkingTCPServer.__init__(self, address, ObjectStorageSFTPRequestHandler)
         ObjectStorageFD.split_size = split_size
 

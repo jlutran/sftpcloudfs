@@ -24,6 +24,9 @@
 # Server ident to use when sending the SSH banner to the client.
 # server-ident = sftpcloudfs_VER
 
+# Enable the Proxy protocol header parser
+# proxy-protocol = no
+
 # SCP support.
 # scp-support = yes
 

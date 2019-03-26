@@ -135,6 +135,7 @@ class Main(object):
                                   'keystone-domain-separator': '@',
                                   'keystone-service-type': default_ks_service_type,
                                   'keystone-endpoint-type': default_ks_endpoint_type,
+                                  'proxy-protocol': False,
                                   })
 
         try:
@@ -283,6 +284,12 @@ class Main(object):
                           default=config_file,
                           help="Use an alternative configuration file")
 
+        parser.add_option("--proxy-protocol",
+                          action="store_true",
+                          dest="proxy_protocol",
+                          default=config.get('sftpcloudfs', 'proxy-protocol'),
+                          help="Enable the Proxy protocol header parser")
+
         (options, args) = parser.parse_args()
 
         # required parameters
@@ -410,6 +417,7 @@ class Main(object):
                                           insecure=self.options.insecure,
                                           secopts=self.options.secopts,
                                           server_ident=self.options.server_ident,
+                                          proxy_protocol=self.options.proxy_protocol,
                                           )
 
         dc = daemon.DaemonContext()
