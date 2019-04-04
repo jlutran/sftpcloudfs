@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 import os
+import pwd
 import signal
 import sys
 import logging
@@ -224,13 +225,11 @@ class Main(object):
                           help="Full path to the pid file location")
 
         parser.add_option('--uid',
-                          type="int",
                           dest="uid",
                           default=config.get('sftpcloudfs', 'uid'),
                           help="UID to drop the privileges to when in daemon mode")
 
         parser.add_option('--gid',
-                          type="int",
                           dest="gid",
                           default=config.get('sftpcloudfs', 'gid'),
                           help="GID to drop the privileges to when in daemon mode")
@@ -432,10 +431,16 @@ class Main(object):
         dc.pidfile = self.pidfile
 
         if self.options.uid:
-            dc.uid = self.options.uid
+            if isinstance(self.options.uid, basestring):
+                dc.uid = pwd.getpwnam(self.options.uid).pw_uid
+            else:
+                dc.uid = self.options.uid
 
         if self.options.gid:
-            dc.gid = self.options.gid
+            if isinstance(self.options.gid, basestring):
+                dc.gid = pwd.getpwnam(self.options.gid).pw_gid
+            else:
+                dc.gid = self.options.gid
 
         # FIXME: we don't know the fileno for Random open files, but they're  < 16
         dc.files_preserve = range(server.fileno(), 16)
