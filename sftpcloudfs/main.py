@@ -138,6 +138,7 @@ class Main(object):
                                   'keystone-endpoint-type': default_ks_endpoint_type,
                                   'proxy-protocol': False,
                                   'storage-policy': False,
+                                  'rsync-bin': False,
                                   })
 
         try:
@@ -296,6 +297,12 @@ class Main(object):
                           default=config.get('sftpcloudfs', 'storage-policy'),
                           help="Swift storage policy to be used")
 
+        parser.add_option("--rsync-bin",
+                          type="str",
+                          dest="rsync_bin",
+                          default=config.get('sftpcloudfs', 'rsync-bin'),
+                          help="Custom rsync binary to be used")
+
         (options, args) = parser.parse_args()
 
         # required parameters
@@ -425,6 +432,7 @@ class Main(object):
                                           server_ident=self.options.server_ident,
                                           proxy_protocol=self.options.proxy_protocol,
                                           storage_policy=self.options.storage_policy,
+                                          rsync_bin=self.options.rsync_bin,
                                           )
 
         dc = daemon.DaemonContext()

@@ -105,5 +105,8 @@
 # Access to other containers will be denied
 # storage-policy = 'Policy-0'
 
+# Custom rsync binary to be used (optional)
+# rsync-bin = (empty)
+
 # EOF
 
