@@ -370,7 +370,7 @@ class Main(object):
             options.secopts["digests"] = [x.strip() for x in digests.split(',')]
 
         try:
-            options.split_size = int(config.get('sftpcloudfs', 'split-large-files'))*10**6
+            options.split_size = int(config.get('sftpcloudfs', 'split-large-files'))*2**20
         except ValueError:
             parser.error('split-large-files: invalid size, integer expected')
 
