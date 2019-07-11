@@ -121,6 +121,7 @@ class RsyncHandler(threading.Thread):
                 '--os-auth-token', self.fs.conn.token,
                 '--os-storage-url', self.fs.conn.url,
                 '--os-segment-size', self.split_size,
+                '--os-client-ip', self.fs.conn.real_ip,
         ] + self.args
         self.log.info("Rsync command: %s" % cmd)
 
