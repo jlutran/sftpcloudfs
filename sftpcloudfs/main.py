@@ -137,6 +137,7 @@ class Main(object):
                                   'keystone-service-type': default_ks_service_type,
                                   'keystone-endpoint-type': default_ks_endpoint_type,
                                   'storage-policy': None,
+                                  'proxy-protocol': 'no',
                                   })
 
         try:
@@ -289,6 +290,12 @@ class Main(object):
                           default=config.get('sftpcloudfs', 'storage-policy'),
                           help="Swift storage policy to be used")
 
+        parser.add_option("--proxy-protocol",
+                          action="store_true",
+                          dest="proxy_protocol",
+                          default=config.getboolean('sftpcloudfs', 'proxy-protocol'),
+                          help="Enable the Proxy protocol header parser")
+
         (options, args) = parser.parse_args()
 
         # required parameters
@@ -435,6 +442,7 @@ class Main(object):
                                           secopts=self.options.secopts,
                                           server_ident=self.options.server_ident,
                                           storage_policy=self.options.storage_policy,
+                                          proxy_protocol=self.options.proxy_protocol,
                                           )
 
         dc = daemon.DaemonContext()

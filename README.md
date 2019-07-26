@@ -64,6 +64,7 @@ that supports following options:
     --server-ident=SERVER_IDENT
                           Server ident to use when sending the SSH banner to the
                           client (default: sftpcloudfs_VER)
+    --proxy-protocol      Enable the Proxy protocol header parser
     --memcache=MEMCACHE   Memcache server(s) to be used for cache (ip:port)
     -l LOG_FILE, --log-file=LOG_FILE
                           Log into provided file
