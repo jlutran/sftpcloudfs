@@ -38,6 +38,7 @@ from Crypto import Random
 
 from ftpcloudfs.fs import ObjectStorageFS, ObjectStorageFD
 from ftpcloudfs.utils import smart_str
+from sftpcloudfs.rsync import RsyncHandler
 from sftpcloudfs.scp import SCPHandler
 
 from functools import wraps
@@ -311,7 +312,7 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
     def __init__(self, address, host_key=None, authurl=None, max_children=20, keystone=None,
             no_scp=False, split_size=0, hide_part_dir=False, auth_timeout=None,
             negotiation_timeout=0, keepalive=0, insecure=False, secopts=None,
-            server_ident=None, storage_policy=None, proxy_protocol=None):
+            server_ident=None, storage_policy=None, proxy_protocol=None, rsync_bin=None):
         self.log = paramiko.util.get_logger("paramiko")
         self.log.debug("%s: start server" % self.__class__.__name__)
         self.fs = ObjectStorageFS(None, None, authurl=authurl, keystone=keystone, hide_part_dir=hide_part_dir,
@@ -319,6 +320,8 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
         self.host_key = host_key
         self.max_children = max_children
         self.no_scp = no_scp
+        self.rsync_bin = rsync_bin
+        self.split_size = split_size
         ObjectStorageSFTPRequestHandler.auth_timeout = auth_timeout
         ObjectStorageSFTPRequestHandler.negotiation_timeout = negotiation_timeout
         ObjectStorageSFTPRequestHandler.keepalive = keepalive
@@ -358,6 +361,10 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
                 self.log.info('invoking %r from=%s' % (command, self.client_address))
                 # handle the command execution
                 SCPHandler(command[1:], channel, self.fs, self.log).start()
+                return True
+            if command[0] == 'rsync':
+                self.log.info('invoking %s %r' % (self.rsync_bin, command))
+                RsyncHandler(self.rsync_bin, command[1:], channel, self.fs, self.log, self.split_size).start()
                 return True
         except:
             self.log.exception("command %r failed from=%s" % (command, self.client_address))
