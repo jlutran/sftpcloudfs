@@ -97,6 +97,9 @@ that supports following options:
                           Access to other containers will be denied
     --rsync-bin=PATH
                           Custom rsync binary to be used (optional)
+    --allow-users=USERS
+                          SSH AllowUsers to be used (optional)
+                          Can be a comma-separated list
     --config=CONFIG       Use an alternative configuration file
 
 The default location for the configuration file is /etc/sftpcloudfs.conf.

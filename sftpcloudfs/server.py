@@ -312,7 +312,7 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
     def __init__(self, address, host_key=None, authurl=None, max_children=20, keystone=None,
             no_scp=False, split_size=0, hide_part_dir=False, auth_timeout=None,
             negotiation_timeout=0, keepalive=0, insecure=False, secopts=None,
-            server_ident=None, storage_policy=None, proxy_protocol=None, rsync_bin=None):
+            server_ident=None, storage_policy=None, proxy_protocol=None, rsync_bin=None, allow_users=None):
         self.log = paramiko.util.get_logger("paramiko")
         self.log.debug("%s: start server" % self.__class__.__name__)
         self.fs = ObjectStorageFS(None, None, authurl=authurl, keystone=keystone, hide_part_dir=hide_part_dir,
@@ -322,6 +322,7 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
         self.no_scp = no_scp
         self.rsync_bin = rsync_bin
         self.split_size = split_size
+        self.allow_users = allow_users
         ObjectStorageSFTPRequestHandler.auth_timeout = auth_timeout
         ObjectStorageSFTPRequestHandler.negotiation_timeout = negotiation_timeout
         ObjectStorageSFTPRequestHandler.keepalive = keepalive
@@ -387,6 +388,8 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
         try:
             if not password:
                 raise EnvironmentError("no password provided")
+            if self.allow_users and username not in self.allow_users:
+                raise EnvironmentError("%s user is not allowed to login" % username)
             self.fs.authenticate(username, password)
         except EnvironmentError, e:
             self.log.warning("%s: Failed to authenticate: %s" % (self.client_address, e))

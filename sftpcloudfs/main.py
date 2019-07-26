@@ -139,6 +139,7 @@ class Main(object):
                                   'storage-policy': None,
                                   'proxy-protocol': False,
                                   'rsync-bin': False,
+                                  'allow-users': None,
                                   })
 
         try:
@@ -303,6 +304,16 @@ class Main(object):
                           default=config.get('sftpcloudfs', 'rsync-bin'),
                           help="Custom rsync binary to be used")
 
+        allow_users = config.get('sftpcloudfs', 'allow-users')
+        if allow_users:
+            allow_users = [x.strip() for x in allow_users.split(',')]
+        parser.add_option("--allow-users",
+                          type="str",
+                          dest="allow_users",
+                          action="append",
+                          default=allow_users,
+                          help="SSH AllowUsers to be used")
+
         (options, args) = parser.parse_args()
 
         # required parameters
@@ -451,6 +462,7 @@ class Main(object):
                                           storage_policy=self.options.storage_policy,
                                           proxy_protocol=self.options.proxy_protocol,
                                           rsync_bin=self.options.rsync_bin,
+                                          allow_users=self.options.allow_users,
                                           )
 
         dc = daemon.DaemonContext()

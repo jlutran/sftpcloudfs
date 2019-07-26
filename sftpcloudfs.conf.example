@@ -108,5 +108,9 @@
 # Custom rsync binary to be used (optional)
 # rsync-bin = (empty)
 
+# SSH AllowUsers to be used (optional)
+# Can be a comma-separated list.
+# allow-users = (empty)
+
 # EOF
 
