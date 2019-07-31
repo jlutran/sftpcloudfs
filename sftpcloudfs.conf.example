@@ -108,5 +108,8 @@
 # Custom rsync binary to be used (optional)
 # rsync-bin = (empty)
 
+# Custom suffix append to segments container name (optional)
+# large-object-container-suffix = _segments
+
 # EOF
 

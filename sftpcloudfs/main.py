@@ -139,6 +139,7 @@ class Main(object):
                                   'storage-policy': None,
                                   'proxy-protocol': False,
                                   'rsync-bin': False,
+                                  'large-object-container-suffix': '_segments',
                                   })
 
         try:
@@ -303,6 +304,12 @@ class Main(object):
                           default=config.get('sftpcloudfs', 'rsync-bin'),
                           help="Custom rsync binary to be used")
 
+        parser.add_option('--large-object-container-suffix',
+                          type="str",
+                          dest="large_object_container_suffix",
+                          default=config.get('sftpcloudfs', 'large-object-container-suffix'),
+                          help="Large object container suffix (default: '_segments'")
+
         (options, args) = parser.parse_args()
 
         # required parameters
@@ -451,6 +458,7 @@ class Main(object):
                                           storage_policy=self.options.storage_policy,
                                           proxy_protocol=self.options.proxy_protocol,
                                           rsync_bin=self.options.rsync_bin,
+                                          large_object_container_suffix=self.options.large_object_container_suffix,
                                           )
 
         dc = daemon.DaemonContext()

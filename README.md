@@ -97,6 +97,8 @@ that supports following options:
                           Access to other containers will be denied
     --rsync-bin=PATH
                           Custom rsync binary to be used (optional)
+    --large-object-container-suffix=SUFFIX
+                          Custom suffix append to segments container name (optional)
     --config=CONFIG       Use an alternative configuration file
 
 The default location for the configuration file is /etc/sftpcloudfs.conf.
