@@ -139,7 +139,7 @@ class Main(object):
                                   'storage-policy': None,
                                   'proxy-protocol': 'no',
                                   'rsync-bin': None,
-                                  'large-object-container': False,
+                                  'large-object-container': 'no',
                                   'large-object-container-suffix': '_segments',
                                   })
 
@@ -305,6 +305,18 @@ class Main(object):
                           default=config.get('sftpcloudfs', 'rsync-bin'),
                           help="Custom rsync binary to be used")
 
+        parser.add_option('--large-object-container',
+                          action="store_true",
+                          dest="large_object_container",
+                          default=config.getboolean('sftpcloudfs', 'large-object-container'),
+                          help="Enable large object container support")
+
+        parser.add_option('--large-object-container-suffix',
+                          type="str",
+                          dest="large_object_container_suffix",
+                          default=config.get('sftpcloudfs', 'large-object-container-suffix'),
+                          help="Large object container suffix (default: '_segments'")
+
         (options, args) = parser.parse_args()
 
         # required parameters
@@ -400,6 +412,14 @@ class Main(object):
                 except KeyError:
                     parser.error("gid: Invalid gid: %s" % options.gid)
 
+        if config.getboolean('sftpcloudfs', 'large-object-container'):
+            try:
+                options.large_object_container_suffix = config.get('sftpcloudfs', 'large-object-container-suffix')
+            except ValueError:
+                parser.error('large-object-container-suffix: invalid value, string expected')
+        else:
+            options.large_object_container_suffix = None
+
         self.options = options
 
     def setup_log(self):
@@ -453,6 +473,7 @@ class Main(object):
                                           storage_policy=self.options.storage_policy,
                                           proxy_protocol=self.options.proxy_protocol,
                                           rsync_bin=self.options.rsync_bin,
+                                          large_object_container_suffix=self.options.large_object_container_suffix,
                                           )
 
         dc = daemon.DaemonContext()
