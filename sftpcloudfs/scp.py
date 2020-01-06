@@ -143,6 +143,8 @@ class SCPHandler(threading.Thread):
         if '\n' not in self.buffer:
             while True:
                 chunk = self.channel.recv(1024)
+                if chunk.startswith('\x00'):
+                    chunk = chunk[1:]
                 self.buffer += chunk
                 if '\n' in chunk:
                     break
