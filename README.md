@@ -101,6 +101,9 @@ that supports following options:
                           Enable separate large object container feature (optional)
     --large-object-container-suffix=SUFFIX
                           Custom suffix append to segments container name (optional)
+    --user-agent=USER_AGENT
+                          Custom HTTP User-Agent value to be used (optional)
+                          default: sftpcloudfs-<version>
     --config=CONFIG       Use an alternative configuration file
 
 The default location for the configuration file is /etc/sftpcloudfs.conf.

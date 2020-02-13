@@ -313,11 +313,11 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
             no_scp=False, split_size=0, hide_part_dir=False, auth_timeout=None,
             negotiation_timeout=0, keepalive=0, insecure=False, secopts=None,
             server_ident=None, storage_policy=None, proxy_protocol=None, rsync_bin=None,
-            large_object_container_suffix=None):
+            large_object_container_suffix=None, user_agent=None):
         self.log = paramiko.util.get_logger("paramiko")
         self.log.debug("%s: start server" % self.__class__.__name__)
         self.fs = ObjectStorageFS(None, None, authurl=authurl, keystone=keystone, hide_part_dir=hide_part_dir,
-                                  insecure=insecure, storage_policy=storage_policy) # unauthorized
+                                  insecure=insecure, storage_policy=storage_policy, user_agent=user_agent)
         self.host_key = host_key
         self.max_children = max_children
         self.no_scp = no_scp

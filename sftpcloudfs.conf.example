@@ -114,5 +114,8 @@
 # Custom suffix append to segments container name (optional)
 # large-object-container-suffix = _segments
 
+# Custom HTTP User-Agent value (optional)
+# user-agent = sftpcloudfs-<version>
+
 # EOF
 

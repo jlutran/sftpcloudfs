@@ -141,6 +141,7 @@ class Main(object):
                                   'rsync-bin': None,
                                   'large-object-container': 'no',
                                   'large-object-container-suffix': '_segments',
+                                  'user-agent': 'sftpcloudfs-%s' % version,
                                   })
 
         try:
@@ -317,6 +318,12 @@ class Main(object):
                           default=config.get('sftpcloudfs', 'large-object-container-suffix'),
                           help="Large object container suffix (default: '_segments'")
 
+        parser.add_option('--user-agent',
+                          type="str",
+                          dest="user_agent",
+                          default=config.get('sftpcloudfs', 'user-agent'),
+                          help="HTTP User-Agent header value (default: sftpcloudfs-<version>)")
+
         (options, args) = parser.parse_args()
 
         # required parameters
@@ -474,6 +481,7 @@ class Main(object):
                                           proxy_protocol=self.options.proxy_protocol,
                                           rsync_bin=self.options.rsync_bin,
                                           large_object_container_suffix=self.options.large_object_container_suffix,
+                                          user_agent=self.options.user_agent,
                                           )
 
         dc = daemon.DaemonContext()
