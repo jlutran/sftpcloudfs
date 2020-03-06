@@ -249,7 +249,7 @@ class ObjectStorageSFTPRequestHandler(StreamRequestHandler):
                     self.log.error("Failed to setup %s (%r): %s" % (op, val, ex))
                 else:
                     self.log.debug("%s set to %r" % (op, val))
-        t.add_server_key(self.server.host_key)
+        [t.add_server_key(k) for k in self.server.host_key]
         if self.keepalive:
             self.log.debug("%s: setting keepalive to %d" % (self.__class__.__name__, self.keepalive))
             t.set_keepalive(self.keepalive)

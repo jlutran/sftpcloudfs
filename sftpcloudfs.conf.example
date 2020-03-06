@@ -12,7 +12,8 @@
 # Allow to access servers without checking SSL certs
 # insecure = no
 
-# Host RSA key used by the server.
+# Host key(s) used by the server.
+# Can be a comma-separated list.
 # host-key-file = (empty)
 
 # Address to bind.

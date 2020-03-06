@@ -167,9 +167,15 @@ class Main(object):
                           default=config.get('sftpcloudfs', 'insecure'),
                           help="Allow to access servers without checking SSL certs")
 
-        parser.add_option("-k", "--host-key-file", dest="host_key",
-                          default=config.get('sftpcloudfs', 'host-key-file'),
-                          help="Host RSA key used by the server")
+        host_key = config.get('sftpcloudfs', 'host-key-file')
+        if host_key:
+            host_key = [x.strip() for x in host_key.split(',')]
+        parser.add_option("-k", "--host-key-file",
+                          type="str",
+                          dest="host_key",
+                          action="append",
+                          default=host_key,
+                          help="Host key(s) used by the server")
 
         parser.add_option("-b", "--bind-address", dest="bind_address",
                           default=config.get('sftpcloudfs', 'bind-address'),
@@ -326,8 +332,9 @@ class Main(object):
         if not options.host_key:
             parser.error("No host-key-file provided")
 
+        self.host_key = []
         try:
-            self.host_key = paramiko.RSAKey(filename=options.host_key)
+            [self.host_key.append(self._get_pkey_object(k)) for k in options.host_key]
         except (IOError, paramiko.SSHException), e:
             parser.error("host-key-file: %s" % e)
 
@@ -421,6 +428,19 @@ class Main(object):
             options.large_object_container_suffix = None
 
         self.options = options
+
+    def _get_pkey_object(self, host_key):
+        """ Try to detect private key type and return paramiko.PKey object """
+
+        for cls in [paramiko.RSAKey, paramiko.DSSKey, paramiko.ECDSAKey]:
+            try:
+                key = cls(filename=host_key)
+            except paramiko.SSHException:
+                pass
+            else:
+                return key
+
+        raise paramiko.SSHException('Unknown key format')
 
     def setup_log(self):
         """Setup server logging facility."""
