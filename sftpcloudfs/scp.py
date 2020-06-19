@@ -162,6 +162,13 @@ class SCPHandler(threading.Thread):
         else:
             directory, filename = posixpath.split(self.paths[0])
 
+        # Handle user@host:container path style
+        if not directory.startswith('/'):
+            directory = '/' + directory
+        # Keep backward compatibility with svfs
+        elif directory.startswith('/containers/'):
+            directory = directory[len('/containers'):]
+
         if not self.fs.isdir(directory):
             raise SCPException(1, '%s is not a directory' % directory)
 
