@@ -98,11 +98,17 @@ class RsyncHandler(threading.Thread):
                 pass
 
     def rsync(self, path):
+        # Keep backward compatibility with svfs
+        if path.startswith('/containers/'):
+            path = path[len('/containers'):]
         path = os.path.normpath(path)
         prefix = ''
         if os.path.dirname(path) == os.sep:
             container = path.strip(os.sep)
         else:
+            # Handle user@host:container path style
+            if not path.startswith(os.sep):
+                path = os.sep + path
             path = path.split(os.sep)
             container = path[1]
             prefix = "/".join(path[2:])
