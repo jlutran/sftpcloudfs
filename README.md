@@ -101,6 +101,10 @@ that supports following options:
                           Enable separate large object container feature (optional)
     --large-object-container-suffix=SUFFIX
                           Custom suffix append to segments container name (optional)
+    --fail2ban            Enable fail2ban feature (optional, requires memcache)
+    --ban-time            Ban duration in seconds (default: 600)
+    --find-time           Duration in seconds before counter reset if no match is found (default: 600)
+    --max-retry           Number of matches before triggering the ban action (default: 3)
     --config=CONFIG       Use an alternative configuration file
 
 The default location for the configuration file is /etc/sftpcloudfs.conf.

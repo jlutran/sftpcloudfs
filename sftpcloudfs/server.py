@@ -28,6 +28,7 @@ import logging
 
 import os
 import errno
+import memcache
 import shlex
 from time import time
 import threading
@@ -313,7 +314,7 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
             no_scp=False, split_size=0, hide_part_dir=False, auth_timeout=None,
             negotiation_timeout=0, keepalive=0, insecure=False, secopts=None,
             server_ident=None, storage_policy=None, proxy_protocol=None, rsync_bin=None,
-            large_object_container_suffix=None):
+            large_object_container_suffix=None, fail2ban=None):
         self.log = paramiko.util.get_logger("paramiko")
         self.log.debug("%s: start server" % self.__class__.__name__)
         self.fs = ObjectStorageFS(None, None, authurl=authurl, keystone=keystone, hide_part_dir=hide_part_dir,
@@ -323,6 +324,9 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
         self.no_scp = no_scp
         self.rsync_bin = rsync_bin
         self.split_size = split_size
+        self.fail2ban = fail2ban
+        if fail2ban:
+            self.f2b = Fail2ban(fail2ban)
         ObjectStorageSFTPRequestHandler.auth_timeout = auth_timeout
         ObjectStorageSFTPRequestHandler.negotiation_timeout = negotiation_timeout
         ObjectStorageSFTPRequestHandler.keepalive = keepalive
@@ -389,6 +393,17 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
         """Check whether the given password is valid for authentication."""
         self.log.info("Auth request (type=password), username=%s, from=%s" \
                       % (username, self.client_address))
+
+        ip = self.client_address[0]
+        if self.fail2ban:
+            try:
+                if self.f2b.get(ip) == 0:
+                    self.log.info("New authentication request from banned address %s" % ip)
+                    return paramiko.AUTH_FAILED
+            except Exception as e:
+                self.log.exception("Failed to get %s value from memcache: %s" % (ip, e))
+                pass
+
         try:
             if not password:
                 raise EnvironmentError("no password provided")
@@ -397,8 +412,14 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
             self.log.warning("%s: Failed to authenticate: %s" % (self.client_address, e))
             self.log.error("Authentication failure for %s from %s port %s" % (username,
                            self.client_address[0], self.client_address[1]))
+            if self.fail2ban:
+                try:
+                    self.f2b.set(ip)
+                except Exception as e:
+                    self.log.exception("Failed to set new value in memcache: %s" % e)
+                    pass
             return paramiko.AUTH_FAILED
-        self.fs.conn.real_ip = self.client_address[0]
+        self.fs.conn.real_ip = ip
         self.log.info("%s authenticated from %s" % (username, self.client_address))
         return paramiko.AUTH_SUCCESSFUL
 
@@ -409,3 +430,43 @@ class ObjectStorageSFTPServer(ForkingTCPServer, paramiko.ServerInterface):
         """
         return "password"
 
+class Fail2ban():
+    """
+    Simple ban mechanism inspired from fail2ban behavior:
+
+    ban_time  : Duration (in seconds) for IP to be banned for
+    find_time : Reset counter if no match is found within "findtime" seconds
+    max_retry : Number of matches which triggers ban action on the IP
+
+    Max theorical search timeframe should be find_time * max_retry
+
+    memcache key   : IP address
+    memcache value : # of attemps left
+    """
+
+    def __init__(self, conf):
+        self.log = paramiko.util.get_logger("paramiko")
+        self.mc = memcache.Client(conf['memcache'])
+        self.bantime = int(conf['ban_time'])
+        self.findtime = int(conf['find_time'])
+        self.max_retry = int(conf['max_retry'])
+
+    def get(self, key):
+        self.log.debug("Get memcache key: %s" % key)
+        return self.mc.get(key)
+
+    def set(self, key):
+        self.log.debug("Set memcache key: %s" % key)
+
+        if self.mc.get(key) is not None:
+            # decr() can't go below 0
+            value = self.mc.decr(key)
+            self.log.info("Auth attempts left for %s: %s" % (key, value))
+            if value == 0:
+                self.log.info("Address %s is now banned for %s seconds" % (key, self.bantime))
+                self.mc.touch(key, self.bantime)
+            else:
+                self.mc.touch(key, self.findtime)
+        else:
+            self.mc.set(key, self.max_retry, self.findtime)
+            self.log.info("Auth attempts left for %s: %s" % (key, self.max_retry))
