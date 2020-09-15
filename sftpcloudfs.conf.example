@@ -115,5 +115,17 @@
 # Custom suffix append to segments container name (optional)
 # large-object-container-suffix = _segments
 
+# Enable fail2ban feature (optional, requires memcache)
+# fail2ban = no
+
+# Ban duration in seconds (optional)
+# ban-time = 600
+
+# Duration in seconds before counter reset if no match is found (optional)
+# find-time = 600
+
+# Number of matches before triggering the ban action (optional)
+# max-retry = 3
+
 # EOF
 

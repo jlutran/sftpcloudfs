@@ -141,6 +141,10 @@ class Main(object):
                                   'rsync-bin': None,
                                   'large-object-container': 'no',
                                   'large-object-container-suffix': '_segments',
+                                  'fail2ban': False,
+                                  'ban-time': 600,
+                                  'find-time': 600,
+                                  'max-retry': 3,
                                   })
 
         try:
@@ -323,6 +327,30 @@ class Main(object):
                           default=config.get('sftpcloudfs', 'large-object-container-suffix'),
                           help="Large object container suffix (default: '_segments'")
 
+        parser.add_option('--fail2ban',
+                          action="store_true",
+                          dest="fail2ban",
+                          default=config.get('sftpcloudfs', 'fail2ban'),
+                          help="Enable fail2ban feature (requires memcache)")
+
+        parser.add_option('--ban-time',
+                          type="int",
+                          dest="ban_time",
+                          default=config.get('sftpcloudfs', 'ban-time'),
+                          help="Ban duration in seconds (default: 600)")
+
+        parser.add_option('--find-time',
+                          type="int",
+                          dest="find_time",
+                          default=config.get('sftpcloudfs', 'find-time'),
+                          help="Duration in seconds before counter reset if no match is found (default: 600)")
+
+        parser.add_option('--max-retry',
+                          type="int",
+                          dest="max_retry",
+                          default=config.get('sftpcloudfs', 'max-retry'),
+                          help="Number of matches before triggering the ban action (default: 3)")
+
         (options, args) = parser.parse_args()
 
         # required parameters
@@ -427,6 +455,12 @@ class Main(object):
         else:
             options.large_object_container_suffix = None
 
+        if options.fail2ban:
+            if not options.memcache:
+                parser.error('memcache is mandatory to use fail2ban feature')
+            fail2ban_keys = ('ban_time', 'find_time', 'max_retry', 'memcache')
+            options.fail2ban = dict((key, getattr(options, key)) for key in fail2ban_keys)
+
         self.options = options
 
     def _get_pkey_object(self, host_key):
@@ -494,6 +528,7 @@ class Main(object):
                                           proxy_protocol=self.options.proxy_protocol,
                                           rsync_bin=self.options.rsync_bin,
                                           large_object_container_suffix=self.options.large_object_container_suffix,
+                                          fail2ban=self.options.fail2ban,
                                           )
 
         dc = daemon.DaemonContext()
