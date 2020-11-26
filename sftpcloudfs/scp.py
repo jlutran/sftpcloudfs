@@ -143,6 +143,8 @@ class SCPHandler(threading.Thread):
         if '\n' not in self.buffer:
             while True:
                 chunk = self.channel.recv(1024)
+                if not chunk:
+                    return self.buffer
                 if chunk.startswith('\x00'):
                     chunk = chunk[1:]
                 self.buffer += chunk
@@ -153,14 +155,11 @@ class SCPHandler(threading.Thread):
         return line
 
     def receive(self):
-        # Ack the connection
-        self.channel.send('\x00')
-
-        if self.args.directory:
+        if not self.args.directory and not self.args.recursive:
+            directory, filename = posixpath.split(self.paths[0])
+        else:
             directory = self.paths[0]
             filename = None
-        else:
-            directory, filename = posixpath.split(self.paths[0])
 
         # Handle user@host:container path style
         if not directory.startswith('/'):
@@ -172,76 +171,57 @@ class SCPHandler(threading.Thread):
         if not self.fs.isdir(directory):
             raise SCPException(1, '%s is not a directory' % directory)
 
-        record = self.recv_line()
-        self.receive_inner(directory, record, override_name=filename)
+        self.recv_files(directory)
+        self.send_status_and_close()
 
-    def receive_inner(self, path, record, override_name=None):
+    def recv_dir(self, path):
+        self.fs.mkdir(path)
+        self.recv_files(path)
 
-        if record[0] == 'T':
-            # We're going to ignore this record, but for compatibility, we'll
-            # confirm its arrival.
+    def recv_file(self, path, size):
+        self.channel.send('\x00')
 
-            # mtime, mtime_u, atime, atime_u = record[1:].split()
-            # mtime = float(mtime) + float(mtime_u) / 100000
-            # atime = float(atime) + float(atime_u) / 100000
+        try:
+            size = int(size)
+        except ValueError:
+            raise SCPException(1, 'invalid size')
 
-            # ACK this file record
-            self.channel.send('\x00')
+        fd = self.fs.open(path, 'w')
+
+        bytes_sent = 0
+        while bytes_sent < size:
+            blocklen = min(size - bytes_sent, self.CHUNK_SIZE)
+            chunk = self.recv(blocklen)
+            fd.write(chunk)
+            bytes_sent += len(chunk)
+
+        fd.close()
+        self.channel.send('\x00')
+
+    def recv_files(self, path):
+        self.channel.send('\x00')
+        while True:
             record = self.recv_line()
+            if not record:
+                break
+            if record[0] == 'T':
+                self.channel.send('\x00')
+            elif record[0] == 'E':
+                self.channel.send('\x00')
+                break
+            elif record[0] in 'CD':
+                mode, size, name = record[1:].split(' ', 2)
+                _path = posixpath.join(path, name)
 
-        elif record[0] == 'C':
-            mode, size, name = record[1:].split(' ', 2)
-            try:
-                size = int(size)
-            except ValueError:
-                raise SCPException(1, 'invalid size')
-            target_path = path.rstrip('/') + '/' + (override_name or name)
-
-            if self.fs.isdir(target_path):
-                raise SCPException(1, '%s: directory exists' % target_path)
-
-            # we can't create files on the root, only inside a container
-            if not all(parse_fspath(target_path)):
-                raise SCPException(1, "%s: container required" % target_path)
-
-            # ACK this file record
-            self.channel.send('\x00')
-
-            fd = self.fs.open(target_path, 'w')
-
-            bytes_sent = 0
-            while bytes_sent < size:
-                chunk = self.recv(self.CHUNK_SIZE)
-                chunk = chunk[:(size-bytes_sent)]
-                fd.write(chunk)
-                bytes_sent += len(chunk)
-
-            fd.close()
-            # ACK sending this file
-            self.channel.send('\x00')
-            #self.wait_for_ack()
-
-        elif record[0] == 'D':
-            mode, size, name = record[1:].split(' ', 2)
-
-            target_path = path.rstrip('/') + '/' + (override_name or name)
-
-            if self.fs.isfile(target_path):
-                raise SCPException(1, '%s: file exists', target_path)
-
-            # ACK this directory record
-            self.channel.send('\x00')
-
-            self.fs.mkdir(target_path)
-
-            while True:
-                record = self.recv_line()
-                if record[0] == 'E':
-                    # ACK this file record
-                    self.channel.send('\x00')
-                    break
+                if record[0] == 'D':
+                    self.recv_dir(_path)
                 else:
-                    self.receive_inner(target_path, record)
+                    # we can't create files on the root, only inside a container
+                    if not all(parse_fspath(_path)):
+                        raise SCPException(1, "%s: container required" % _path)
+                    self.recv_file(_path, size)
+            else:
+                raise SCPException(1, 'Unknown request: %s' % record)
 
     def send(self, path, path_stat):
         self.log.debug('About to send %s', path)
