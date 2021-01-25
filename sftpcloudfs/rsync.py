@@ -30,8 +30,9 @@ class RsyncHandler(threading.Thread):
         '--inplace',
         '--log-format=X',
         '--partial',
+        '--remove-source-files',
     ]
-    OPTS_REGEX = r"^-[egiloprtv.DW]+LsfxC$"
+    OPTS_REGEX = r"^-[efgiloprstuvx.CDILW]+$"
     DOC_URL = "https://docs.ovh.com/gb/en/storage/pca/rsync"
 
 
